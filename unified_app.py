@@ -1,33 +1,18 @@
 import os
 import logging
-from flask import Flask, jsonify, request, send_from_directory, render_template_string
-from werkzeug.middleware.proxy_fix import ProxyFix
-from flask_cors import CORS
+from flask import Blueprint, jsonify, request, render_template_string
+from models import ScrapingJob, ScrapingResult, Analytics
 
-# Configure logging
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+# Create blueprint instead of separate app
+app = Blueprint('unified_app', __name__)
 
-# Create Flask app
-app = Flask(__name__, static_folder='frontend/public', static_url_path='/static')
-app.secret_key = "web-scraper-secret-key-2024"
-app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
-
-# Add CORS support
-CORS(app)
-
-# Sample data
-adapters = [
+# Default adapters data
+default_adapters = [
     {"name": "default", "display_name": "Default General Scraper", "description": "General purpose scraper for any website"},
     {"name": "indeed", "display_name": "Indeed Job Board", "description": "Scraper for Indeed job listings"},
     {"name": "linkedin", "display_name": "LinkedIn Jobs", "description": "Scraper for LinkedIn job listings"},
     {"name": "business_directory", "display_name": "Business Directory", "description": "Scraper for business directories"}
 ]
-
-jobs = []
-job_counter = 1
 
 # HTML template for React app
 REACT_HTML = '''<!DOCTYPE html>
@@ -504,7 +489,7 @@ def health_check():
 @app.route('/api/adapters', methods=['GET'])
 def list_adapters():
     """List all available scraping adapters"""
-    return jsonify({'adapters': adapters})
+    return jsonify({'adapters': default_adapters})
 
 @app.route('/api/search', methods=['POST'])
 def search_urls():
@@ -531,72 +516,72 @@ def search_urls():
 @app.route('/api/jobs', methods=['POST'])
 def create_job():
     """Create a new scraping job"""
-    global job_counter
-    
     try:
         data = request.json
         job_type = data.get('type', 'scrape')
         
-        job = {
-            'id': str(job_counter),
-            'type': job_type,
+        job_data = {
+            'task_type': data.get('task_type', 'general'),
+            'adapter_name': data.get('adapter_name', 'default'),
+            'search_query': data.get('query'),
+            'urls': data.get('urls', []),
             'status': 'completed',
             'progress': 100,
-            'created_at': '2024-01-01T00:00:00Z',
-            'query': data.get('query'),
-            'urls': data.get('urls', []),
-            'adapter_name': data.get('adapter_name'),
-            'task_type': data.get('task_type'),
+            'total_urls': len(data.get('urls', [])),
+            'completed_urls': len(data.get('urls', [])),
             'results_count': 3
         }
         
-        jobs.append(job)
-        job_counter += 1
+        job = ScrapingJob.create_job(job_data)
         
-        return jsonify({'job_id': job['id'], 'status': 'started'})
+        return jsonify({'job_id': job.id, 'status': 'started'})
         
     except Exception as e:
         logging.error(f"Job creation failed: {e}")
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/jobs/<job_id>/status', methods=['GET'])
+@app.route('/api/jobs/<int:job_id>/status', methods=['GET'])
 def get_job_status(job_id):
     """Get job status"""
     try:
-        job = next((j for j in jobs if j['id'] == job_id), None)
+        job = ScrapingJob.query.get(job_id)
         
         if not job:
             return jsonify({'error': 'Job not found'}), 404
         
-        return jsonify(job)
+        return jsonify(job.to_dict())
     except Exception as e:
         logging.error(f"Status check failed: {e}")
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/jobs/<job_id>/results', methods=['GET'])
+@app.route('/api/jobs/<int:job_id>/results', methods=['GET'])
 def get_job_results(job_id):
     """Get job results"""
     try:
-        # Mock results
-        results = [
-            {
-                'url': 'https://example1.com',
-                'data': {'title': 'Sample Title 1', 'description': 'Sample description', 'contact': 'john@example.com'},
-                'scraped_at': '2024-01-01T00:00:00Z'
-            },
-            {
-                'url': 'https://example2.com', 
-                'data': {'title': 'Sample Title 2', 'description': 'Another description', 'phone': '+1-555-0123'},
-                'scraped_at': '2024-01-01T00:01:00Z'
-            },
-            {
-                'url': 'https://example3.com',
-                'data': {'title': 'Sample Title 3', 'description': 'Third description', 'email': 'contact@example3.com'},
-                'scraped_at': '2024-01-01T00:02:00Z'
-            }
-        ]
+        results = ScrapingResult.get_results(job_id)
         
-        return jsonify({'results': results})
+        # If no results exist, create some mock results for demonstration
+        if not results:
+            mock_results = [
+                {
+                    'url': 'https://example1.com',
+                    'data': {'title': 'Sample Title 1', 'description': 'Sample description', 'contact': 'john@example.com'},
+                    'scraped_at': '2024-01-01T00:00:00Z'
+                },
+                {
+                    'url': 'https://example2.com', 
+                    'data': {'title': 'Sample Title 2', 'description': 'Another description', 'phone': '+1-555-0123'},
+                    'scraped_at': '2024-01-01T00:01:00Z'
+                },
+                {
+                    'url': 'https://example3.com',
+                    'data': {'title': 'Sample Title 3', 'description': 'Third description', 'email': 'contact@example3.com'},
+                    'scraped_at': '2024-01-01T00:02:00Z'
+                }
+            ]
+            return jsonify({'results': mock_results})
+        
+        return jsonify({'results': [result.to_dict() for result in results]})
     except Exception as e:
         logging.error(f"Results fetch failed: {e}")
         return jsonify({'error': str(e)}), 500
@@ -604,22 +589,17 @@ def get_job_results(job_id):
 @app.route('/api/jobs', methods=['GET'])
 def list_jobs():
     """List all jobs"""
-    return jsonify({'jobs': jobs})
+    jobs = ScrapingJob.get_jobs()
+    return jsonify({'jobs': [job.to_dict() for job in jobs]})
 
 @app.route('/api/stats', methods=['GET'])
 def get_stats():
     """Get dashboard statistics"""
     try:
-        return jsonify({
-            'total_jobs': len(jobs),
-            'completed_jobs': len([j for j in jobs if j['status'] == 'completed']),
-            'running_jobs': len([j for j in jobs if j['status'] == 'running']),
-            'failed_jobs': len([j for j in jobs if j['status'] == 'failed']),
-            'total_results': sum(j.get('results_count', 0) for j in jobs)
-        })
+        stats = Analytics.get_dashboard_stats()
+        return jsonify(stats)
     except Exception as e:
         logging.error(f"Stats fetch failed: {e}")
         return jsonify({'error': str(e)}), 500
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+# This is now a Blueprint, so no __main__ section needed
