@@ -51,6 +51,7 @@ try:
         # Test connection
         mongo_client.admin.command('ping')
         logging.info("MongoDB connected successfully")
+        logging.info(f"Using database: {db.name}")
     else:
         raise Exception("MONGODB_URI not found in environment")
 except Exception as e:
