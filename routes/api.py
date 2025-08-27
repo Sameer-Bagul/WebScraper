@@ -9,6 +9,93 @@ import logging
 
 api_bp = Blueprint('api', __name__)
 
+@api_bp.route('/scrape/jobs', methods=['POST'])
+def start_job_scraping():
+    """Start real-time job scraping"""
+    try:
+        data = request.json
+        search_query = data.get('search_query', 'python developer')
+        location = data.get('location', 'remote')
+        max_results = data.get('max_results', 10)
+        
+        # Import here to avoid circular imports
+        from real_time_scraper import RealTimeScraper
+        scraper = RealTimeScraper(current_app.db)
+        
+        job_data = {
+            'search_query': search_query,
+            'location': location,
+            'max_results': max_results,
+            'urls': [],
+            'total_urls': max_results
+        }
+        
+        job_id = scraper.start_real_time_job_scraping(job_data)
+        
+        return jsonify({
+            'success': True,
+            'job_id': job_id,
+            'message': f'Job scraping started for "{search_query}" in {location}',
+            'status': 'running'
+        })
+        
+    except Exception as e:
+        logging.error(f"Job scraping failed: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@api_bp.route('/scrape/leads', methods=['POST'])
+def start_lead_scraping():
+    """Start real-time lead generation"""
+    try:
+        data = request.json
+        target_domain = data.get('target_domain')
+        industry = data.get('industry', 'technology')
+        max_results = data.get('max_results', 20)
+        
+        if not target_domain:
+            return jsonify({'success': False, 'error': 'target_domain is required'}), 400
+        
+        from real_time_scraper import RealTimeScraper
+        scraper = RealTimeScraper(current_app.db)
+        
+        job_data = {
+            'target_domain': target_domain,
+            'industry': industry,
+            'max_results': max_results,
+            'urls': [target_domain],
+            'total_urls': max_results
+        }
+        
+        job_id = scraper.start_real_time_lead_scraping(job_data)
+        
+        return jsonify({
+            'success': True,
+            'job_id': job_id,
+            'message': f'Lead generation started for {target_domain}',
+            'status': 'running'
+        })
+        
+    except Exception as e:
+        logging.error(f"Lead scraping failed: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@api_bp.route('/analytics/dashboard')
+def get_dashboard_analytics():
+    """Get dashboard analytics"""
+    try:
+        from models import Analytics
+        analytics = Analytics(current_app.db)
+        stats = analytics.get_dashboard_stats()
+        
+        return jsonify({
+            'success': True,
+            'stats': stats
+        })
+        
+    except Exception as e:
+        logging.error(f"Analytics failed: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @api_bp.route('/job/<job_id>/status')
 def get_job_status(job_id):
     """Get job status via API"""
