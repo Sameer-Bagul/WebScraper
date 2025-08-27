@@ -13,11 +13,14 @@ Web Scraper Pro is a professional web scraping application designed for two prim
 ✓ **Contact Extraction System:** Built NLP-based contact information extraction from web pages
 ✓ **Database Storage:** All scraping results now stored directly in MongoDB Atlas collections
 ✓ **Demo Functionality:** Working system demonstrates job scraping with sample data creation
+✓ **Data Compatibility:** Fixed model compatibility with existing database records (task_type/job_type mapping)
+✓ **Windows Setup Guide:** Created comprehensive Windows development environment setup documentation
 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
 Architecture preference: React.js frontend + Flask API backend
+Development environment: Windows local development setup requested
 
 ## System Architecture
 
