@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Web Scraper Pro{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-play-circle"></i> Start New Scraping Job</h5>
+            </div>
+            <div class="card-body">
+                <form id="scraping-form">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="job_type" class="form-label">Job Type</label>
+                                <select class="form-select" id="job_type" name="job_type" required>
+                                    <option value="jobs">Job Hunting</option>
+                                    <option value="leads">Lead Generation</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="max_results" class="form-label">Max Results</label>
+                                <input type="number" class="form-control" id="max_results" name="max_results" value="100" min="1" max="1000">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="query" class="form-label">Search Query</label>
+                        <input type="text" class="form-control" id="query" name="query" placeholder="e.g., Python Developer, Digital Marketing Agency" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-search"></i> Start Scraping
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-bar-chart"></i> Quick Stats</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <strong>Total Jobs:</strong> {{ jobs|length }}
+                </div>
+                <div class="mb-3">
+                    <strong>Completed:</strong> {{ jobs|selectattr("status", "equalto", "completed")|list|length }}
+                </div>
+                <div class="mb-3">
+                    <strong>Running:</strong> {{ jobs|selectattr("status", "equalto", "running")|list|length }}
+                </div>
+                <div class="mb-3">
+                    <strong>Total Results:</strong> {{ jobs|sum(attribute='results_count') }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-list"></i> Recent Jobs</h5>
+            </div>
+            <div class="card-body">
+                {% if jobs %}
+                    <div class="table-responsive">
+                        <table class="table table-dark table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Query</th>
+                                    <th>Status</th>
+                                    <th>Results</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for job in jobs[:10] %}
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if job.job_type == 'jobs' else 'info' }}">
+                                            {{ job.job_type.title() }}
+                                        </span>
+                                    </td>
+                                    <td>{{ job.query }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if job.status == 'completed' else 'warning' if job.status == 'running' else 'danger' }}">
+                                            {{ job.status.title() }}
+                                        </span>
+                                    </td>
+                                    <td>{{ job.results_count }}</td>
+                                    <td>{{ job.created_at.strftime('%Y-%m-%d %H:%M') if job.created_at else 'N/A' }}</td>
+                                    <td>
+                                        <a href="{{ url_for('scraper.results', job_id=job._id) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-eye"></i> View
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted">No scraping jobs yet. Start your first job above!</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('scraping-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    
+    submitBtn.innerHTML = '<i class="bi bi-spinner-circle"></i> Starting...';
+    submitBtn.disabled = true;
+    
+    try {
+        const response = await fetch('/start-scraping', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert(result.message);
+            location.reload();
+        } else {
+            alert('Error: ' + result.error);
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+    
+    submitBtn.innerHTML = originalText;
+    submitBtn.disabled = false;
+});
+</script>
+{% endblock %}

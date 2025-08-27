@@ -22,4 +22,5 @@ dependencies = [
     "flask-login>=0.6.3",
     "sqlalchemy>=2.0.43",
     "pymongo>=4.14.1",
+    "beautifulsoup4>=4.13.5",
 ]

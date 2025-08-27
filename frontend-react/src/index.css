@@ -1,0 +1,119 @@
+:root {
+  --bs-body-bg: #0d1117;
+  --bs-body-color: #f0f6fc;
+  --bs-primary: #238636;
+  --bs-secondary: #30363d;
+  --bs-success: #28a745;
+  --bs-warning: #ffc107;
+  --bs-danger: #dc3545;
+  --bs-info: #17a2b8;
+}
+
+body {
+  background-color: var(--bs-body-bg) !important;
+  color: var(--bs-body-color) !important;
+}
+
+.navbar-dark {
+  background-color: #21262d !important;
+}
+
+.card {
+  background-color: #21262d !important;
+  border: 1px solid #30363d !important;
+  color: var(--bs-body-color) !important;
+}
+
+.card-header {
+  background-color: #161b22 !important;
+  border-bottom: 1px solid #30363d !important;
+}
+
+.btn-primary {
+  background-color: var(--bs-primary) !important;
+  border-color: var(--bs-primary) !important;
+}
+
+.btn-outline-primary {
+  color: var(--bs-primary) !important;
+  border-color: var(--bs-primary) !important;
+}
+
+.btn-outline-primary:hover {
+  background-color: var(--bs-primary) !important;
+  border-color: var(--bs-primary) !important;
+}
+
+.table-dark {
+  --bs-table-bg: #21262d !important;
+  --bs-table-striped-bg: #161b22 !important;
+}
+
+.form-control {
+  background-color: #21262d !important;
+  border: 1px solid #30363d !important;
+  color: var(--bs-body-color) !important;
+}
+
+.form-control:focus {
+  background-color: #21262d !important;
+  border-color: var(--bs-primary) !important;
+  color: var(--bs-body-color) !important;
+  box-shadow: 0 0 0 0.2rem rgba(35, 134, 54, 0.25) !important;
+}
+
+.form-select {
+  background-color: #21262d !important;
+  border: 1px solid #30363d !important;
+  color: var(--bs-body-color) !important;
+}
+
+.form-select:focus {
+  background-color: #21262d !important;
+  border-color: var(--bs-primary) !important;
+  color: var(--bs-body-color) !important;
+  box-shadow: 0 0 0 0.2rem rgba(35, 134, 54, 0.25) !important;
+}
+
+.alert {
+  border: none !important;
+}
+
+.badge {
+  font-size: 0.75em !important;
+}
+
+.spinner-border {
+  width: 1rem !important;
+  height: 1rem !important;
+}
+
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(13, 17, 23, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.status-badge-success {
+  background-color: var(--bs-success) !important;
+}
+
+.status-badge-warning {
+  background-color: var(--bs-warning) !important;
+  color: #000 !important;
+}
+
+.status-badge-danger {
+  background-color: var(--bs-danger) !important;
+}
+
+.status-badge-info {
+  background-color: var(--bs-info) !important;
+}

@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-gear"></i> System Settings</h2>
+    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Admin
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-sliders"></i> Scraping Configuration</h5>
+            </div>
+            <div class="card-body">
+                <form>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Default Max Results</label>
+                                <input type="number" class="form-control" value="100">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Request Delay (seconds)</label>
+                                <input type="number" class="form-control" value="2" step="0.5">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Timeout (seconds)</label>
+                                <input type="number" class="form-control" value="30">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Retry Attempts</label>
+                                <input type="number" class="form-control" value="3">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="useProxies" checked>
+                            <label class="form-check-label" for="useProxies">
+                                Use Proxy Rotation
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="respectRobots" checked>
+                            <label class="form-check-label" for="respectRobots">
+                                Respect robots.txt
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check"></i> Save Settings
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-info-circle"></i> System Information</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Version:</strong> 1.0.0</p>
+                <p><strong>Database:</strong> MongoDB Atlas</p>
+                <p><strong>Status:</strong> <span class="badge bg-success">Online</span></p>
+                <p><strong>Environment:</strong> Development</p>
+                <p><strong>Python:</strong> 3.11+</p>
+                <p><strong>Flask:</strong> 3.0+</p>
+                
+                <hr>
+                
+                <div class="d-grid">
+                    <button class="btn btn-outline-info">
+                        <i class="bi bi-download"></i> Export Logs
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
