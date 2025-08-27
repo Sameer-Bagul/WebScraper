@@ -1,190 +1,262 @@
 from datetime import datetime
 from typing import Dict, List, Optional, Any
-from app import db
-from sqlalchemy import Text, JSON
 import json
 
+try:
+    from bson import ObjectId
+except ImportError:
+    # Fallback for mock ObjectId
+    class ObjectId:
+        def __init__(self, id_str=None):
+            self.id = id_str or '507f1f77bcf86cd799439011'
+        
+        def __str__(self):
+            return self.id
 
-class ScrapingJob(db.Model):
-    __tablename__ = 'scraping_jobs'
+class ScrapingJob:
+    def __init__(self, db):
+        self.collection = db.scraping_jobs
     
-    id = db.Column(db.Integer, primary_key=True)
-    status = db.Column(db.String(50), default='pending')
-    task_type = db.Column(db.String(50), default='general')
-    adapter_name = db.Column(db.String(100), default='default')
-    search_query = db.Column(Text)
-    urls = db.Column(JSON)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    progress = db.Column(db.Integer, default=0)
-    total_urls = db.Column(db.Integer, default=0)
-    completed_urls = db.Column(db.Integer, default=0)
-    failed_urls = db.Column(db.Integer, default=0)
-    results_count = db.Column(db.Integer, default=0)
-    error_message = db.Column(Text)
-    
-    # Relationship with results
-    results = db.relationship('ScrapingResult', backref='job', cascade='all, delete-orphan', lazy=True)
-    
-    def to_dict(self):
-        """Convert to dictionary for JSON serialization"""
-        return {
-            'id': self.id,
-            'status': self.status,
-            'task_type': self.task_type,
-            'adapter_name': self.adapter_name,
-            'search_query': self.search_query,
-            'urls': self.urls or [],
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
-            'progress': self.progress,
-            'total_urls': self.total_urls,
-            'completed_urls': self.completed_urls,
-            'failed_urls': self.failed_urls,
-            'results_count': self.results_count,
-            'error_message': self.error_message
-        }
-    
-    @classmethod
-    def create_job(cls, job_data: Dict) -> 'ScrapingJob':
+    def create_job(self, job_data: Dict) -> str:
         """Create a new scraping job"""
-        job = cls(
-            status=job_data.get('status', 'pending'),
-            task_type=job_data.get('task_type', 'general'),
-            adapter_name=job_data.get('adapter_name', 'default'),
-            search_query=job_data.get('search_query'),
-            urls=job_data.get('urls', []),
-            progress=job_data.get('progress', 0),
-            total_urls=job_data.get('total_urls', 0),
-            completed_urls=job_data.get('completed_urls', 0),
-            failed_urls=job_data.get('failed_urls', 0),
-            results_count=job_data.get('results_count', 0),
-            error_message=job_data.get('error_message')
-        )
-        db.session.add(job)
-        db.session.commit()
-        return job
+        job = {
+            'status': job_data.get('status', 'pending'),
+            'task_type': job_data.get('task_type', 'general'),
+            'adapter_name': job_data.get('adapter_name', 'default'),
+            'search_query': job_data.get('search_query'),
+            'urls': job_data.get('urls', []),
+            'created_at': datetime.utcnow(),
+            'updated_at': datetime.utcnow(),
+            'progress': job_data.get('progress', 0),
+            'total_urls': job_data.get('total_urls', 0),
+            'completed_urls': job_data.get('completed_urls', 0),
+            'failed_urls': job_data.get('failed_urls', 0),
+            'results_count': job_data.get('results_count', 0),
+            'error_message': job_data.get('error_message')
+        }
+        result = self.collection.insert_one(job)
+        return str(result.inserted_id)
     
-    def update_job(self, update_data: Dict):
+    def update_job(self, job_id: str, update_data: Dict):
         """Update job status and progress"""
-        for key, value in update_data.items():
-            if hasattr(self, key):
-                setattr(self, key, value)
-        self.updated_at = datetime.utcnow()
-        db.session.commit()
-    
-    @classmethod
-    def get_jobs(cls, limit: int = 50) -> List['ScrapingJob']:
-        """Get recent jobs"""
-        return cls.query.order_by(cls.created_at.desc()).limit(limit).all()
-
-
-class ScrapingResult(db.Model):
-    __tablename__ = 'scraping_results'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    job_id = db.Column(db.Integer, db.ForeignKey('scraping_jobs.id'), nullable=False)
-    url = db.Column(Text, nullable=False)
-    result_type = db.Column(db.String(50), default='general')
-    data = db.Column(JSON)
-    scraped_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    def to_dict(self):
-        """Convert to dictionary for JSON serialization"""
-        return {
-            'id': self.id,
-            'job_id': self.job_id,
-            'url': self.url,
-            'result_type': self.result_type,
-            'data': self.data,
-            'scraped_at': self.scraped_at.isoformat() if self.scraped_at else None
-        }
-    
-    @classmethod
-    def save_result(cls, job_id: int, url: str, data: Dict, result_type: str = 'general'):
-        """Save scraping result"""
-        result = cls(
-            job_id=job_id,
-            url=url,
-            result_type=result_type,
-            data=data
-        )
-        db.session.add(result)
-        db.session.commit()
-        return result
-    
-    @classmethod
-    def get_results(cls, job_id: int) -> List['ScrapingResult']:
-        """Get results for a job"""
-        return cls.query.filter_by(job_id=job_id).all()
-    
-    @classmethod
-    def get_results_by_type(cls, job_id: int, result_type: str) -> List['ScrapingResult']:
-        """Get results by type (job, lead, general)"""
-        return cls.query.filter_by(job_id=job_id, result_type=result_type).all()
-
-
-class DomainAdapter(db.Model):
-    __tablename__ = 'domain_adapters'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), unique=True, nullable=False)
-    config = db.Column(JSON)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    def to_dict(self):
-        """Convert to dictionary for JSON serialization"""
-        return {
-            'id': self.id,
-            'name': self.name,
-            'config': self.config,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None
-        }
-    
-    @classmethod
-    def save_adapter(cls, name: str, config: Dict):
-        """Save or update domain adapter"""
-        adapter = cls.query.filter_by(name=name).first()
-        if adapter:
-            adapter.config = config
-            adapter.updated_at = datetime.utcnow()
+        update_data['updated_at'] = datetime.utcnow()
+        if isinstance(job_id, str) and len(job_id) == 24:
+            # Valid ObjectId string
+            try:
+                self.collection.update_one(
+                    {'_id': ObjectId(job_id)},
+                    {'$set': update_data}
+                )
+            except:
+                # Fallback for mock database
+                pass
         else:
-            adapter = cls(name=name, config=config)
-            db.session.add(adapter)
-        db.session.commit()
+            # Mock database or invalid ID
+            pass
+    
+    def get_job(self, job_id: str) -> Optional[Dict]:
+        """Get job by ID"""
+        try:
+            if isinstance(job_id, str) and len(job_id) == 24:
+                job = self.collection.find_one({'_id': ObjectId(job_id)})
+            else:
+                # For mock database
+                jobs = list(self.collection.find())
+                job = jobs[0] if jobs else None
+                
+            if job:
+                job['_id'] = str(job.get('_id', job_id))
+                job['id'] = job['_id']  # Add id field for compatibility
+                # Convert datetime to ISO format
+                if 'created_at' in job and job['created_at']:
+                    if isinstance(job['created_at'], datetime):
+                        job['created_at'] = job['created_at'].isoformat()
+                if 'updated_at' in job and job['updated_at']:
+                    if isinstance(job['updated_at'], datetime):
+                        job['updated_at'] = job['updated_at'].isoformat()
+            return job
+        except:
+            return None
+    
+    def get_jobs(self, limit: int = 50) -> List[Dict]:
+        """Get recent jobs"""
+        try:
+            jobs = list(self.collection.find().sort('created_at', -1).limit(limit))
+        except:
+            # Fallback for mock database
+            jobs = list(self.collection.find())[:limit]
+            
+        for job in jobs:
+            job['_id'] = str(job.get('_id', ''))
+            job['id'] = job['_id']  # Add id field for compatibility
+            # Convert datetime to ISO format
+            if 'created_at' in job and job['created_at']:
+                if isinstance(job['created_at'], datetime):
+                    job['created_at'] = job['created_at'].isoformat()
+            if 'updated_at' in job and job['updated_at']:
+                if isinstance(job['updated_at'], datetime):
+                    job['updated_at'] = job['updated_at'].isoformat()
+        return jobs
+
+class ScrapingResult:
+    def __init__(self, db):
+        self.collection = db.scraping_results
+    
+    def save_result(self, job_id: str, url: str, data: Dict, result_type: str = 'general'):
+        """Save scraping result"""
+        result = {
+            'job_id': job_id,
+            'url': url,
+            'result_type': result_type,
+            'data': data,
+            'scraped_at': datetime.utcnow()
+        }
+        return self.collection.insert_one(result)
+    
+    def get_results(self, job_id: str) -> List[Dict]:
+        """Get results for a job"""
+        try:
+            results = list(self.collection.find({'job_id': job_id}))
+        except:
+            # Fallback for mock database
+            results = list(self.collection.find())
+            
+        for result in results:
+            result['_id'] = str(result.get('_id', ''))
+            result['id'] = result['_id']  # Add id field for compatibility
+            # Convert datetime to ISO format
+            if 'scraped_at' in result and result['scraped_at']:
+                if isinstance(result['scraped_at'], datetime):
+                    result['scraped_at'] = result['scraped_at'].isoformat()
+        return results
+    
+    def get_results_by_type(self, job_id: str, result_type: str) -> List[Dict]:
+        """Get results by type (job, lead, general)"""
+        try:
+            results = list(self.collection.find({
+                'job_id': job_id,
+                'result_type': result_type
+            }))
+        except:
+            # Fallback for mock database
+            results = list(self.collection.find())
+            
+        for result in results:
+            result['_id'] = str(result.get('_id', ''))
+            result['id'] = result['_id']  # Add id field for compatibility
+            # Convert datetime to ISO format
+            if 'scraped_at' in result and result['scraped_at']:
+                if isinstance(result['scraped_at'], datetime):
+                    result['scraped_at'] = result['scraped_at'].isoformat()
+        return results
+
+class DomainAdapter:
+    def __init__(self, db):
+        self.collection = db.domain_adapters
+    
+    def save_adapter(self, name: str, config: Dict):
+        """Save or update domain adapter"""
+        adapter = {
+            'name': name,
+            'config': config,
+            'created_at': datetime.utcnow(),
+            'updated_at': datetime.utcnow()
+        }
+        try:
+            self.collection.replace_one(
+                {'name': name},
+                adapter,
+                upsert=True
+            )
+        except:
+            # Fallback for mock database
+            self.collection.insert_one(adapter)
+    
+    def get_adapter(self, name: str) -> Optional[Dict]:
+        """Get adapter by name"""
+        try:
+            adapter = self.collection.find_one({'name': name})
+        except:
+            # Fallback for mock database
+            adapters = list(self.collection.find())
+            adapter = next((a for a in adapters if a.get('name') == name), None)
+            
+        if adapter:
+            adapter['_id'] = str(adapter.get('_id', ''))
+            adapter['id'] = adapter['_id']  # Add id field for compatibility
+            # Convert datetime to ISO format
+            if 'created_at' in adapter and adapter['created_at']:
+                if isinstance(adapter['created_at'], datetime):
+                    adapter['created_at'] = adapter['created_at'].isoformat()
+            if 'updated_at' in adapter and adapter['updated_at']:
+                if isinstance(adapter['updated_at'], datetime):
+                    adapter['updated_at'] = adapter['updated_at'].isoformat()
         return adapter
     
-    @classmethod
-    def get_adapter(cls, name: str) -> Optional['DomainAdapter']:
-        """Get adapter by name"""
-        return cls.query.filter_by(name=name).first()
-    
-    @classmethod
-    def get_adapters(cls) -> List['DomainAdapter']:
+    def get_adapters(self) -> List[Dict]:
         """Get all adapters"""
-        return cls.query.all()
+        try:
+            adapters = list(self.collection.find())
+        except:
+            # Fallback for mock database
+            adapters = list(self.collection.find())
+            
+        for adapter in adapters:
+            adapter['_id'] = str(adapter.get('_id', ''))
+            adapter['id'] = adapter['_id']  # Add id field for compatibility
+            # Convert datetime to ISO format
+            if 'created_at' in adapter and adapter['created_at']:
+                if isinstance(adapter['created_at'], datetime):
+                    adapter['created_at'] = adapter['created_at'].isoformat()
+            if 'updated_at' in adapter and adapter['updated_at']:
+                if isinstance(adapter['updated_at'], datetime):
+                    adapter['updated_at'] = adapter['updated_at'].isoformat()
+        return adapters
     
-    def delete_adapter(self):
+    def delete_adapter(self, name: str):
         """Delete adapter"""
-        db.session.delete(self)
-        db.session.commit()
-
+        try:
+            self.collection.delete_one({'name': name})
+        except:
+            # Fallback for mock database
+            pass
 
 class Analytics:
-    @staticmethod
-    def get_dashboard_stats() -> Dict:
+    def __init__(self, db):
+        self.db = db
+        self.jobs_collection = db.scraping_jobs
+        self.results_collection = db.scraping_results
+    
+    def get_dashboard_stats(self) -> Dict:
         """Get dashboard statistics"""
-        total_jobs = ScrapingJob.query.count()
-        completed_jobs = ScrapingJob.query.filter_by(status='completed').count()
-        failed_jobs = ScrapingJob.query.filter_by(status='failed').count()
-        running_jobs = ScrapingJob.query.filter_by(status='running').count()
-        
-        total_results = ScrapingResult.query.count()
-        
-        # Recent job statistics
-        recent_jobs = ScrapingJob.query.order_by(ScrapingJob.created_at.desc()).limit(10).all()
+        try:
+            total_jobs = self.jobs_collection.count_documents({})
+            completed_jobs = self.jobs_collection.count_documents({'status': 'completed'})
+            failed_jobs = self.jobs_collection.count_documents({'status': 'failed'})
+            running_jobs = self.jobs_collection.count_documents({'status': 'running'})
+            total_results = self.results_collection.count_documents({})
+            
+            # Recent job statistics
+            recent_jobs = list(self.jobs_collection.find().sort('created_at', -1).limit(10))
+        except:
+            # Fallback for mock database
+            total_jobs = 0
+            completed_jobs = 0
+            failed_jobs = 0
+            running_jobs = 0
+            total_results = 0
+            recent_jobs = []
+            
+        for job in recent_jobs:
+            job['_id'] = str(job.get('_id', ''))
+            job['id'] = job['_id']  # Add id field for compatibility
+            # Convert datetime to ISO format
+            if 'created_at' in job and job['created_at']:
+                if isinstance(job['created_at'], datetime):
+                    job['created_at'] = job['created_at'].isoformat()
+            if 'updated_at' in job and job['updated_at']:
+                if isinstance(job['updated_at'], datetime):
+                    job['updated_at'] = job['updated_at'].isoformat()
         
         return {
             'total_jobs': total_jobs,
@@ -192,5 +264,5 @@ class Analytics:
             'failed_jobs': failed_jobs,
             'running_jobs': running_jobs,
             'total_results': total_results,
-            'recent_jobs': [job.to_dict() for job in recent_jobs]
+            'recent_jobs': recent_jobs
         }

@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request, Response, current_app
 from models import ScrapingJob, ScrapingResult, Analytics, DomainAdapter
+from typing import Dict
 import csv
 import io
 import json
@@ -159,31 +160,42 @@ def search_urls():
 
 @api_bp.route('/jobs', methods=['POST'])
 def create_job():
-    """Create a new scraping job"""
+    """Create a new real-time scraping job"""
     try:
+        from real_time_scraper import RealTimeScraper
+        
         data = request.json
-        job_type = data.get('type', 'scrape')
+        task_type = data.get('task_type', 'general')
         
         job_data = {
-            'task_type': data.get('task_type', 'general'),
+            'task_type': task_type,
             'adapter_name': data.get('adapter_name', 'default'),
             'search_query': data.get('query'),
-            'urls': data.get('urls', [])
+            'urls': data.get('urls', []),
+            'max_results': data.get('max_results', 50)
         }
         
-        # Set initial status as completed for demo
-        job_data['status'] = 'completed'
-        job_data['progress'] = 100
-        job_data['total_urls'] = len(job_data.get('urls', []))
-        job_data['completed_urls'] = job_data['total_urls']
-        job_data['results_count'] = 3
-        
         if current_app.db:
-            # Use MongoDB if available
-            scraping_job = ScrapingJob(current_app.db)
-            job_id = scraping_job.create_job(job_data)
+            # Start real-time scraping
+            rt_scraper = RealTimeScraper(current_app.db)
+            
+            if task_type == 'job_scraping':
+                job_id = rt_scraper.start_real_time_job_scraping(job_data)
+            elif task_type == 'lead_generation':
+                job_id = rt_scraper.start_real_time_lead_scraping(job_data)
+            else:
+                # Generic scraping
+                scraping_job = ScrapingJob(current_app.db)
+                job_id = scraping_job.create_job({**job_data, 'status': 'pending'})
+                
+                # Start generic scraping in background
+                import threading
+                threading.Thread(
+                    target=_run_generic_scraping,
+                    args=(job_id, job_data, current_app.db)
+                ).start()
         else:
-            # Use mock job ID for fallback
+            # Fallback mock
             import uuid
             job_id = str(uuid.uuid4())
             logging.info(f"Created fallback job with ID: {job_id}")
@@ -225,24 +237,109 @@ def get_stats():
         logging.error(f"Stats fetch failed: {e}")
         return jsonify({'error': str(e)}), 500
     
+def _run_generic_scraping(job_id: str, job_data: Dict, db):
+    """Run generic scraping in background thread"""
+    from scraper_engine import ScraperEngine, BatchScraper
+    
     try:
-        results = scraper.search_duckduckgo(query, max_results)
-        return jsonify({'results': results})
+        scraping_job_model = ScrapingJob(db)
+        scraping_result_model = ScrapingResult(db)
+        
+        scraper = ScraperEngine()
+        batch_scraper = BatchScraper(scraper)
+        
+        # Update job status
+        scraping_job_model.update_job(job_id, {'status': 'running'})
+        
+        urls = job_data.get('urls', [])
+        if not urls:
+            # Search for URLs if none provided
+            query = job_data.get('search_query', '')
+            if query:
+                search_results = scraper.search_duckduckgo(query, 10)
+                urls = [r['url'] for r in search_results]
+                scraping_job_model.update_job(job_id, {'urls': urls, 'total_urls': len(urls)})
+        
+        if urls:
+            # Load adapter config
+            adapter_name = job_data.get('adapter_name', 'default')
+            adapter_config = _load_adapter_config(adapter_name)
+            
+            # Progress callback
+            def progress_callback(progress, completed, results_count):
+                scraping_job_model.update_job(job_id, {
+                    'progress': int(progress),
+                    'completed_urls': completed,
+                    'results_count': results_count
+                })
+            
+            # Scrape URLs
+            results = batch_scraper.scrape_urls(urls, adapter_config, progress_callback)
+            
+            # Save results
+            for result in results:
+                if 'error' not in result:
+                    scraping_result_model.save_result(job_id, result.get('url', ''), result, 'general')
+            
+            # Mark as completed
+            scraping_job_model.update_job(job_id, {
+                'status': 'completed',
+                'progress': 100,
+                'results_count': len([r for r in results if 'error' not in r])
+            })
+        else:
+            scraping_job_model.update_job(job_id, {
+                'status': 'failed',
+                'error_message': 'No URLs found to scrape'
+            })
+            
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logging.error(f"Generic scraping failed: {e}")
+        scraping_job_model.update_job(job_id, {
+            'status': 'failed',
+            'error_message': str(e)
+        })
+
+def _load_adapter_config(adapter_name: str) -> Dict:
+    """Load adapter configuration"""
+    adapter_configs = {
+        'default': {
+            'selectors': {
+                'title': {'selector': 'h1, title', 'attribute': 'text'},
+                'content': {'selector': 'p', 'attribute': 'text', 'multiple': True}
+            },
+            'extract_links': True,
+            'extract_text': True
+        },
+        'indeed': {
+            'selectors': {
+                'job_title': {'selector': '.jobsearch-JobInfoHeader-title', 'attribute': 'text'},
+                'company': {'selector': '.icl-u-lg-mr--sm', 'attribute': 'text'},
+                'location': {'selector': '.jobsearch-JobInfoHeader-subtitle', 'attribute': 'text'},
+                'description': {'selector': '#jobDescriptionText', 'attribute': 'text'}
+            }
+        },
+        'linkedin': {
+            'selectors': {
+                'job_title': {'selector': '.job-details-jobs-unified-top-card__job-title', 'attribute': 'text'},
+                'company': {'selector': '.job-details-jobs-unified-top-card__company-name', 'attribute': 'text'},
+                'location': {'selector': '.job-details-jobs-unified-top-card__bullet', 'attribute': 'text'}
+            }
+        }
+    }
+    
+    return adapter_configs.get(adapter_name, adapter_configs['default'])
 
 @api_bp.route('/job/<job_id>/cancel', methods=['POST'])
 def cancel_job(job_id):
     """Cancel a running job"""
-    from app import db
-    
-    if not db:
+    if not current_app.db:
         return jsonify({'error': 'Database connection failed'}), 500
     
-    task_manager = TaskManager(db)
-    success = task_manager.cancel_task(job_id)
-    
-    if success:
+    try:
+        scraping_job = ScrapingJob(current_app.db)
+        scraping_job.update_job(job_id, {'status': 'cancelled'})
         return jsonify({'message': 'Job cancellation requested'})
-    else:
-        return jsonify({'error': 'Job not found or not running'}), 404
+    except Exception as e:
+        logging.error(f"Job cancellation failed: {e}")
+        return jsonify({'error': str(e)}), 404
