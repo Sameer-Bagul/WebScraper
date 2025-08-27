@@ -98,7 +98,7 @@ except Exception as e:
     db = MockDB()
     logging.info("Mock database initialized for development")
 
-# Make db available to other modules
+# Store database reference for global access
 app.db = db
 
 # Add CORS support for React frontend

@@ -4,7 +4,7 @@ import random
 import logging
 from typing import Dict, List, Optional, Tuple
 from urllib.parse import urljoin, urlparse
-from lxml import html, etree
+from lxml import html
 from playwright.sync_api import sync_playwright
 from tenacity import retry, stop_after_attempt, wait_exponential
 from duckduckgo_search import DDGS
@@ -152,7 +152,10 @@ class ScraperEngine:
             if not values:
                 return None
             
-            return values if multiple else values[0]
+            if multiple:
+                return values
+            else:
+                return values[0] if values else None
             
         except Exception as e:
             logger.error(f"Error extracting field: {e}")

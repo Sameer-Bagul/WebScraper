@@ -75,7 +75,53 @@ class ContactExtractor:
                     if len(name.split()) >= 2 and len(name) > 3:
                         names.add(name)
         except Exception as e:
-            logger.error(f"Error in name extraction: {e}")
+            logger.error(f"Error in spaCy name extraction: {e}")
+        
+        return names
+    
+    def extract_contacts(self, html_content: str, url: str = "") -> List[Dict]:
+        """Extract all contact information from HTML content"""
+        try:
+            # Parse HTML
+            tree = html.fromstring(html_content)
+            text_content = tree.text_content()
+            
+            # Extract various contact details
+            emails = self.extract_emails(text_content)
+            phones = self.extract_phones(text_content)
+            social_links = self.extract_social_links(text_content)
+            names = self.extract_names_with_spacy(text_content)
+            
+            # Create contact records
+            contacts = []
+            
+            # If we have emails, create contacts for each
+            if emails:
+                for email in emails:
+                    contact = {
+                        'email': email,
+                        'source_url': url,
+                        'phones': list(phones) if phones else [],
+                        'names': list(names) if names else [],
+                        'social': {k: list(v) for k, v in social_links.items() if v}
+                    }
+                    contacts.append(contact)
+            elif phones:  # If no emails but phones exist
+                for phone in phones:
+                    contact = {
+                        'phone': phone,
+                        'source_url': url,
+                        'emails': [],
+                        'names': list(names) if names else [],
+                        'social': {k: list(v) for k, v in social_links.items() if v}
+                    }
+                    contacts.append(contact)
+            
+            return contacts
+            
+        except Exception as e:
+            logger.error(f"Error extracting contacts: {e}")
+            return []
         
         return names
     
