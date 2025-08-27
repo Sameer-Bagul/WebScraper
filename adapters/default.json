@@ -1,0 +1,43 @@
+{
+  "name": "Default General Scraper",
+  "description": "General purpose scraper for any website with basic content extraction",
+  "selectors": {
+    "title": {
+      "selector": "title",
+      "attribute": "text"
+    },
+    "meta_description": {
+      "selector": "meta[name='description']",
+      "attribute": "content"
+    },
+    "headings": {
+      "selector": "h1, h2, h3",
+      "attribute": "text",
+      "multiple": true
+    },
+    "paragraphs": {
+      "selector": "p",
+      "attribute": "text",
+      "multiple": true
+    },
+    "links": {
+      "selector": "a[href]",
+      "attribute": "href",
+      "multiple": true
+    },
+    "images": {
+      "selector": "img[src]",
+      "attribute": "src",
+      "multiple": true
+    },
+    "main_content": {
+      "selector": "main, .content, .main-content, article",
+      "attribute": "text"
+    }
+  },
+  "extract_links": true,
+  "extract_text": true,
+  "fallback_to_dynamic": true,
+  "wait_time": 2,
+  "rate_limit": 1
+}

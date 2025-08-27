@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+{% block title %}Results - Web Scraper Pro{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Job Information -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i data-feather="file-text" class="me-2"></i>
+                        Job Results
+                    </h5>
+                    <div>
+                        <a href="{{ url_for('api.export_job_results', job_id=job._id, format='csv') }}" class="btn btn-outline-secondary me-2">
+                            <i data-feather="download" class="me-1"></i>
+                            Export CSV
+                        </a>
+                        <a href="{{ url_for('api.export_job_results', job_id=job._id, format='json') }}" class="btn btn-outline-secondary">
+                            <i data-feather="download" class="me-1"></i>
+                            Export JSON
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Job ID:</strong> <span class="font-monospace">{{ job._id }}</span></p>
+                            <p><strong>Type:</strong> {{ job.type|title }}
+                                {% if job.task_type %}
+                                    ({{ job.task_type|title }})
+                                {% endif %}
+                            </p>
+                            {% if job.type == 'search' %}
+                                <p><strong>Query:</strong> {{ job.query }}</p>
+                            {% else %}
+                                <p><strong>Adapter:</strong> {{ job.adapter_name }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Status:</strong> 
+                                <span class="badge bg-{{ 'success' if job.status == 'completed' else 'primary' if job.status == 'running' else 'danger' if job.status == 'failed' else 'secondary' }}">
+                                    {{ job.status|title }}
+                                </span>
+                            </p>
+                            <p><strong>Results:</strong> {{ results|length }} items</p>
+                            <p><strong>Created:</strong> {{ job.created_at.strftime('%Y-%m-%d %H:%M:%S') if job.created_at else 'N/A' }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i data-feather="list" class="me-2"></i>
+                        Scraped Data ({{ results|length }} items)
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if results %}
+                        <!-- Filter buttons -->
+                        <div class="mb-3">
+                            <button class="btn btn-sm btn-outline-primary me-2" onclick="filterResults('all')">
+                                <i data-feather="list" class="me-1"></i>
+                                All ({{ results|length }})
+                            </button>
+                            {% if job.task_type == 'lead' %}
+                                <button class="btn btn-sm btn-outline-success me-2" onclick="filterResults('high-quality')">
+                                    <i data-feather="star" class="me-1"></i>
+                                    High Quality Leads
+                                </button>
+                                <button class="btn btn-sm btn-outline-info me-2" onclick="filterResults('has-email')">
+                                    <i data-feather="mail" class="me-1"></i>
+                                    Has Email
+                                </button>
+                                <button class="btn btn-sm btn-outline-warning" onclick="filterResults('has-phone')">
+                                    <i data-feather="phone" class="me-1"></i>
+                                    Has Phone
+                                </button>
+                            {% endif %}
+                        </div>
+
+                        <!-- Results table -->
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="resultsTable">
+                                <thead>
+                                    <tr>
+                                        <th>URL</th>
+                                        <th>Data</th>
+                                        {% if job.task_type == 'lead' %}
+                                            <th>Lead Score</th>
+                                            <th>Contacts</th>
+                                        {% endif %}
+                                        <th>Scraped At</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for result in results %}
+                                    <tr class="result-row" 
+                                        data-lead-score="{{ result.data.lead_score if result.data.lead_score else 0 }}"
+                                        data-has-email="{{ 'true' if result.data.contacts and result.data.contacts.emails else 'false' }}"
+                                        data-has-phone="{{ 'true' if result.data.contacts and result.data.contacts.phones else 'false' }}">
+                                        <td>
+                                            <a href="{{ result.url }}" target="_blank" class="text-break">
+                                                {{ result.url[:50] }}{% if result.url|length > 50 %}...{% endif %}
+                                                <i data-feather="external-link" class="ms-1"></i>
+                                            </a>
+                                        </td>
+                                        <td>
+                                            <div class="accordion accordion-flush" id="accordion{{ loop.index }}">
+                                                <div class="accordion-item">
+                                                    <h2 class="accordion-header">
+                                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                                                data-bs-target="#collapse{{ loop.index }}">
+                                                            <i data-feather="chevron-down" class="me-2"></i>
+                                                            View Scraped Data
+                                                        </button>
+                                                    </h2>
+                                                    <div id="collapse{{ loop.index }}" class="accordion-collapse collapse" 
+                                                         data-bs-parent="#accordion{{ loop.index }}">
+                                                        <div class="accordion-body">
+                                                            <pre class="bg-dark text-light p-3 rounded"><code>{{ result.data | tojson(indent=2) }}</code></pre>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        {% if job.task_type == 'lead' %}
+                                            <td>
+                                                {% set score = result.data.lead_score or 0 %}
+                                                <div class="d-flex align-items-center">
+                                                    <div class="progress me-2" style="width: 60px; height: 20px;">
+                                                        <div class="progress-bar bg-{{ 'success' if score >= 70 else 'warning' if score >= 40 else 'danger' }}" 
+                                                             style="width: {{ score }}%"></div>
+                                                    </div>
+                                                    <span class="badge bg-{{ 'success' if score >= 70 else 'warning' if score >= 40 else 'secondary' }}">
+                                                        {{ score }}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                {% if result.data.contacts %}
+                                                    <div class="small">
+                                                        {% if result.data.contacts.emails %}
+                                                            <div class="mb-1">
+                                                                <i data-feather="mail" class="me-1"></i>
+                                                                {{ result.data.contacts.emails|length }} email(s)
+                                                            </div>
+                                                        {% endif %}
+                                                        {% if result.data.contacts.phones %}
+                                                            <div class="mb-1">
+                                                                <i data-feather="phone" class="me-1"></i>
+                                                                {{ result.data.contacts.phones|length }} phone(s)
+                                                            </div>
+                                                        {% endif %}
+                                                        {% if result.data.contacts.social_links %}
+                                                            {% if result.data.contacts.social_links.linkedin %}
+                                                                <div class="mb-1">
+                                                                    <i data-feather="linkedin" class="me-1"></i>
+                                                                    {{ result.data.contacts.social_links.linkedin|length }} LinkedIn
+                                                                </div>
+                                                            {% endif %}
+                                                        {% endif %}
+                                                    </div>
+                                                {% else %}
+                                                    <span class="text-muted">No contacts</span>
+                                                {% endif %}
+                                            </td>
+                                        {% endif %}
+                                        <td>
+                                            <small>{{ result.scraped_at.strftime('%Y-%m-%d %H:%M') if result.scraped_at else 'N/A' }}</small>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i data-feather="inbox" class="text-muted mb-3" style="width: 48px; height: 48px;"></i>
+                            <h6 class="text-muted">No results found</h6>
+                            <p class="text-muted">The scraping job didn't return any data</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Initialize DataTable
+    $('#resultsTable').DataTable({
+        "pageLength": 25,
+        "order": [[2, "desc"]], // Sort by scraped date
+        "columnDefs": [
+            { "orderable": false, "targets": [1] } // Disable sorting for data column
+        ]
+    });
+    
+    // Update feather icons after accordion expand
+    $('.accordion-button').on('click', function() {
+        setTimeout(() => feather.replace(), 100);
+    });
+});
+
+function filterResults(filter) {
+    const rows = document.querySelectorAll('.result-row');
+    
+    rows.forEach(row => {
+        let show = true;
+        
+        switch(filter) {
+            case 'high-quality':
+                const score = parseInt(row.getAttribute('data-lead-score') || '0');
+                show = score >= 70;
+                break;
+            case 'has-email':
+                show = row.getAttribute('data-has-email') === 'true';
+                break;
+            case 'has-phone':
+                show = row.getAttribute('data-has-phone') === 'true';
+                break;
+            case 'all':
+            default:
+                show = true;
+        }
+        
+        row.style.display = show ? '' : 'none';
+    });
+    
+    // Update button states
+    document.querySelectorAll('[onclick^="filterResults"]').forEach(btn => {
+        btn.classList.remove('btn-primary');
+        btn.classList.add('btn-outline-primary');
+    });
+    
+    event.target.classList.remove('btn-outline-primary');
+    event.target.classList.add('btn-primary');
+}
+</script>
+{% endblock %}

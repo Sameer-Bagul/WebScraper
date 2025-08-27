@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Adapters - Web Scraper Pro{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>
+                        <i data-feather="tool" class="me-2"></i>
+                        Manage Adapters
+                    </h2>
+                    <p class="text-muted">Create and manage domain-specific scraping adapters</p>
+                </div>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newAdapterModal">
+                    <i data-feather="plus" class="me-2"></i>
+                    New Adapter
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Adapters List -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i data-feather="list" class="me-2"></i>
+                        Available Adapters
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if adapters %}
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="adaptersTable">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Display Name</th>
+                                        <th>Description</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for adapter in adapters %}
+                                    <tr>
+                                        <td>
+                                            <code>{{ adapter.name }}</code>
+                                        </td>
+                                        <td>{{ adapter.display_name }}</td>
+                                        <td>
+                                            <span title="{{ adapter.description }}">
+                                                {{ adapter.description[:60] }}{% if adapter.description|length > 60 %}...{% endif %}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary me-1" 
+                                                    onclick="viewAdapter('{{ adapter.name }}')" title="View">
+                                                <i data-feather="eye"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-warning me-1" 
+                                                    onclick="editAdapter('{{ adapter.name }}')" title="Edit">
+                                                <i data-feather="edit"></i>
+                                            </button>
+                                            {% if adapter.name != 'default' %}
+                                            <form method="POST" action="{{ url_for('admin.delete_adapter', name=adapter.name) }}" 
+                                                  class="d-inline" onsubmit="return confirm('Are you sure you want to delete this adapter?')">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                                                    <i data-feather="trash-2"></i>
+                                                </button>
+                                            </form>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i data-feather="tool" class="text-muted mb-3" style="width: 48px; height: 48px;"></i>
+                            <h6 class="text-muted">No adapters found</h6>
+                            <p class="text-muted">Create your first adapter to start scraping</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Adapter Modal -->
+<div class="modal fade" id="newAdapterModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i data-feather="plus" class="me-2"></i>
+                    Create New Adapter
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('admin.new_adapter') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="adapterName" class="form-label">Adapter Name</label>
+                        <input type="text" class="form-control" id="adapterName" name="name" 
+                               placeholder="e.g., my_custom_adapter" required>
+                        <div class="form-text">Use lowercase letters, numbers, and underscores only</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="adapterConfig" class="form-label">Configuration (JSON)</label>
+                        <textarea class="form-control font-monospace" id="adapterConfig" name="config" 
+                                  rows="15" required></textarea>
+                        <div class="form-text">
+                            <button type="button" class="btn btn-sm btn-outline-info" onclick="loadTemplate()">
+                                Load Template
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Adapter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- View/Edit Adapter Modal -->
+<div class="modal fade" id="viewAdapterModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewAdapterTitle">
+                    <i data-feather="eye" class="me-2"></i>
+                    View Adapter
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <pre class="bg-dark text-light p-3 rounded" id="adapterConfigDisplay"><code></code></pre>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    $('#adaptersTable').DataTable({
+        "pageLength": 25,
+        "order": [[0, "asc"]],
+        "columnDefs": [
+            { "orderable": false, "targets": [3] }
+        ]
+    });
+});
+
+function loadTemplate() {
+    const template = {
+        "name": "My Custom Adapter",
+        "description": "Custom adapter for specific website",
+        "selectors": {
+            "title": {
+                "selector": "h1, .title",
+                "attribute": "text"
+            },
+            "description": {
+                "selector": ".description, .content",
+                "attribute": "text"
+            },
+            "links": {
+                "selector": "a[href]",
+                "attribute": "href",
+                "multiple": true
+            }
+        },
+        "extract_links": false,
+        "extract_text": true,
+        "fallback_to_dynamic": true
+    };
+    
+    document.getElementById('adapterConfig').value = JSON.stringify(template, null, 2);
+}
+
+function viewAdapter(name) {
+    fetch(`/admin/api/adapter/${name}`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('viewAdapterTitle').innerHTML = 
+                '<i data-feather="eye" class="me-2"></i>View Adapter: ' + name;
+            document.getElementById('adapterConfigDisplay').textContent = 
+                JSON.stringify(data.config, null, 2);
+            
+            const modal = new bootstrap.Modal(document.getElementById('viewAdapterModal'));
+            modal.show();
+            
+            // Update feather icons
+            feather.replace();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to load adapter configuration');
+        });
+}
+
+function editAdapter(name) {
+    // For now, redirect to edit page
+    window.location.href = `/admin/adapter/${name}/edit`;
+}
+</script>
+{% endblock %}

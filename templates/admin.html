@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+
+{% block title %}Admin - Web Scraper Pro{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Admin Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2>
+                <i data-feather="settings" class="me-2"></i>
+                Admin Dashboard
+            </h2>
+            <p class="text-muted">Manage adapters and view system statistics</p>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    {% if stats %}
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card border-primary">
+                <div class="card-body text-center">
+                    <i data-feather="clipboard" class="text-primary mb-2" style="width: 32px; height: 32px;"></i>
+                    <h3 class="card-title">{{ stats.total_jobs }}</h3>
+                    <p class="card-text text-muted">Total Jobs</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card border-success">
+                <div class="card-body text-center">
+                    <i data-feather="check-circle" class="text-success mb-2" style="width: 32px; height: 32px;"></i>
+                    <h3 class="card-title">{{ stats.completed_jobs }}</h3>
+                    <p class="card-text text-muted">Completed Jobs</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card border-info">
+                <div class="card-body text-center">
+                    <i data-feather="database" class="text-info mb-2" style="width: 32px; height: 32px;"></i>
+                    <h3 class="card-title">{{ stats.total_results }}</h3>
+                    <p class="card-text text-muted">Total Results</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card border-warning">
+                <div class="card-body text-center">
+                    <i data-feather="tool" class="text-warning mb-2" style="width: 32px; height: 32px;"></i>
+                    <h3 class="card-title">{{ adapters|length }}</h3>
+                    <p class="card-text text-muted">Adapters</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i data-feather="zap" class="me-2"></i>
+                        Quick Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-2">
+                            <a href="{{ url_for('admin.manage_adapters') }}" class="btn btn-outline-primary w-100">
+                                <i data-feather="tool" class="me-2"></i>
+                                Manage Adapters
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-success w-100">
+                                <i data-feather="activity" class="me-2"></i>
+                                View Dashboard
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{{ url_for('main.index') }}" class="btn btn-outline-info w-100">
+                                <i data-feather="plus" class="me-2"></i>
+                                New Job
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <button class="btn btn-outline-warning w-100" onclick="clearOldJobs()">
+                                <i data-feather="trash-2" class="me-2"></i>
+                                Clear Old Jobs
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Information -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i data-feather="info" class="me-2"></i>
+                        System Information
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tr>
+                            <td><strong>Database:</strong></td>
+                            <td>MongoDB</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Backend:</strong></td>
+                            <td>Flask</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Scraping Engine:</strong></td>
+                            <td>Requests + Playwright</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Contact Extraction:</strong></td>
+                            <td>spaCy + Regex</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i data-feather="tool" class="me-2"></i>
+                        Available Adapters
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if adapters %}
+                        <div class="list-group list-group-flush">
+                            {% for adapter in adapters[:5] %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                <div>
+                                    <strong>{{ adapter.display_name }}</strong>
+                                    <br><small class="text-muted">{{ adapter.description[:50] }}{% if adapter.description|length > 50 %}...{% endif %}</small>
+                                </div>
+                                <span class="badge bg-secondary">{{ adapter.name }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% if adapters|length > 5 %}
+                            <div class="text-center mt-2">
+                                <a href="{{ url_for('admin.manage_adapters') }}" class="btn btn-sm btn-outline-primary">
+                                    View All ({{ adapters|length }})
+                                </a>
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <p class="text-muted">No adapters available</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity Chart -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i data-feather="bar-chart-2" class="me-2"></i>
+                        Job Activity Overview
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="activityChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Create activity chart
+    const ctx = document.getElementById('activityChart').getContext('2d');
+    const activityChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Completed', 'Running', 'Failed', 'Pending'],
+            datasets: [{
+                data: [
+                    {{ stats.completed_jobs if stats else 0 }},
+                    {{ stats.running_jobs if stats else 0 }},
+                    {{ stats.failed_jobs if stats else 0 }},
+                    {{ (stats.total_jobs - stats.completed_jobs - stats.running_jobs - stats.failed_jobs) if stats else 0 }}
+                ],
+                backgroundColor: [
+                    'rgba(25, 135, 84, 0.8)',  // success
+                    'rgba(13, 110, 253, 0.8)', // primary
+                    'rgba(220, 53, 69, 0.8)',  // danger
+                    'rgba(108, 117, 125, 0.8)' // secondary
+                ],
+                borderColor: [
+                    'rgba(25, 135, 84, 1)',
+                    'rgba(13, 110, 253, 1)',
+                    'rgba(220, 53, 69, 1)',
+                    'rgba(108, 117, 125, 1)'
+                ],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true
+                    }
+                }
+            }
+        }
+    });
+});
+
+function clearOldJobs() {
+    if (confirm('Are you sure you want to clear old completed jobs? This action cannot be undone.')) {
+        // This would need to be implemented as an API endpoint
+        alert('Feature not implemented yet. Would clear jobs older than 30 days.');
+    }
+}
+</script>
+{% endblock %}

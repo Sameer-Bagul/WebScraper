@@ -1,0 +1,20 @@
+[project]
+name = "repl-nix-workspace"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.11"
+dependencies = [
+    "duckduckgo-search>=8.1.1",
+    "flask-cors>=6.0.1",
+    "flask>=3.1.2",
+    "gunicorn>=23.0.0",
+    "lxml>=5.4.0",
+    "playwright>=1.54.0",
+    "pymongo>=4.14.1",
+    "ratelimit>=2.2.1",
+    "requests>=2.32.5",
+    "spacy>=3.8.7",
+    "tenacity>=9.1.2",
+    "trafilatura>=2.0.0",
+    "werkzeug>=3.1.3",
+]

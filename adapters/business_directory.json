@@ -1,0 +1,101 @@
+{
+  "name": "Business Directory",
+  "description": "Specialized scraper for business directories and company listings for lead generation",
+  "selectors": {
+    "business_name": {
+      "selector": ".business-name, .company-name, .listing-title, h1, h2.company, .name",
+      "attribute": "text"
+    },
+    "address": {
+      "selector": ".address, .location, .street-address, [class*='address'], .locality",
+      "attribute": "text"
+    },
+    "phone": {
+      "selector": ".phone, .tel, .telephone, [class*='phone'], a[href^='tel:']",
+      "attribute": "text"
+    },
+    "email": {
+      "selector": "a[href^='mailto:'], .email, [class*='email']",
+      "attribute": "href"
+    },
+    "website": {
+      "selector": ".website, .url, a[class*='website'], .company-website, .homepage",
+      "attribute": "href"
+    },
+    "business_description": {
+      "selector": ".description, .about, .summary, .business-info, .company-description",
+      "attribute": "text"
+    },
+    "category": {
+      "selector": ".category, .business-type, .industry, .sector",
+      "attribute": "text"
+    },
+    "rating": {
+      "selector": ".rating, .stars, .score, [class*='rating']",
+      "attribute": "text"
+    },
+    "reviews_count": {
+      "selector": ".reviews-count, .review-count, .total-reviews",
+      "attribute": "text"
+    },
+    "hours": {
+      "selector": ".hours, .opening-hours, .business-hours, .schedule",
+      "attribute": "text"
+    },
+    "social_links": {
+      "selector": "a[href*='facebook'], a[href*='twitter'], a[href*='linkedin'], a[href*='instagram']",
+      "attribute": "href",
+      "multiple": true
+    },
+    "employees_count": {
+      "selector": ".employees, .staff-size, .company-size",
+      "attribute": "text"
+    },
+    "founded_year": {
+      "selector": ".founded, .established, .since",
+      "attribute": "text"
+    },
+    "contact_person": {
+      "selector": ".contact-person, .manager, .owner, .contact-name",
+      "attribute": "text"
+    }
+  },
+  "contact_extraction": {
+    "email_patterns": [
+      "\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Z|a-z]{2,}\\b"
+    ],
+    "phone_patterns": [
+      "\\(?(\\d{3})\\)?[-. ]?(\\d{3})[-. ]?(\\d{4})",
+      "\\+?1?[-. ]?\\(?\\d{3}\\)?[-. ]?\\d{3}[-. ]?\\d{4}"
+    ],
+    "social_patterns": {
+      "linkedin": "linkedin\\.com\\/(?:company\\/|in\\/)[a-zA-Z0-9-]+",
+      "facebook": "facebook\\.com\\/[a-zA-Z0-9.-]+",
+      "twitter": "twitter\\.com\\/[a-zA-Z0-9_]+"
+    }
+  },
+  "lead_scoring": {
+    "has_email": 30,
+    "has_phone": 20,
+    "has_website": 15,
+    "has_social": 10,
+    "has_description": 10,
+    "has_contact_person": 15
+  },
+  "extract_links": true,
+  "extract_text": true,
+  "fallback_to_dynamic": false,
+  "wait_time": 1,
+  "rate_limit": 1,
+  "follow_detail_links": true,
+  "pagination": {
+    "next_page_selector": ".next, .pagination-next, a[aria-label='Next']",
+    "max_pages": 10
+  },
+  "data_cleaning": {
+    "normalize_phone": true,
+    "validate_email": true,
+    "extract_domain": true,
+    "clean_addresses": true
+  }
+}

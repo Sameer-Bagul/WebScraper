@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Web Scraper Pro{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <!-- Hero Section -->
+    <div class="row mb-5">
+        <div class="col-lg-8 mx-auto text-center">
+            <h1 class="display-4 mb-3">
+                <i data-feather="globe" class="me-3"></i>
+                Web Scraper Pro
+            </h1>
+            <p class="lead">Professional web scraping tool for job hunting and lead generation</p>
+            <p class="text-muted">Extract structured data from any website with powerful scraping engines and intelligent contact extraction</p>
+        </div>
+    </div>
+
+    <!-- Main Form -->
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card">
+                <div class="card-header">
+                    <ul class="nav nav-tabs card-header-tabs" id="jobTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="search-tab" data-bs-toggle="tab" data-bs-target="#search-pane" type="button" role="tab">
+                                <i data-feather="search" class="me-1"></i>
+                                Search URLs
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="scrape-tab" data-bs-toggle="tab" data-bs-target="#scrape-pane" type="button" role="tab">
+                                <i data-feather="download" class="me-1"></i>
+                                Direct Scraping
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body">
+                    <div class="tab-content" id="jobTabsContent">
+                        <!-- Search Tab -->
+                        <div class="tab-pane fade show active" id="search-pane" role="tabpanel">
+                            <form method="POST" action="{{ url_for('main.new_job') }}">
+                                <input type="hidden" name="job_type" value="search">
+                                
+                                <div class="mb-3">
+                                    <label for="query" class="form-label">
+                                        <i data-feather="search" class="me-1"></i>
+                                        Search Query
+                                    </label>
+                                    <input type="text" class="form-control" id="query" name="query" 
+                                           placeholder="e.g., Python developer jobs in Berlin, or business directories" required>
+                                    <div class="form-text">Use specific keywords to find relevant URLs for scraping</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="max_results" class="form-label">
+                                        <i data-feather="hash" class="me-1"></i>
+                                        Maximum Results
+                                    </label>
+                                    <select class="form-select" id="max_results" name="max_results">
+                                        <option value="10">10 results</option>
+                                        <option value="20" selected>20 results</option>
+                                        <option value="50">50 results</option>
+                                        <option value="100">100 results</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i data-feather="search" class="me-2"></i>
+                                        Search for URLs
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <!-- Scrape Tab -->
+                        <div class="tab-pane fade" id="scrape-pane" role="tabpanel">
+                            <form method="POST" action="{{ url_for('main.new_job') }}">
+                                <input type="hidden" name="job_type" value="scrape">
+                                
+                                <div class="mb-3">
+                                    <label for="urls" class="form-label">
+                                        <i data-feather="link" class="me-1"></i>
+                                        URLs to Scrape
+                                    </label>
+                                    <textarea class="form-control" id="urls" name="urls" rows="6" 
+                                              placeholder="Enter URLs, one per line&#10;https://example.com/jobs&#10;https://another-site.com/listings" required></textarea>
+                                    <div class="form-text">Enter one URL per line</div>
+                                </div>
+                                
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="adapter" class="form-label">
+                                            <i data-feather="settings" class="me-1"></i>
+                                            Scraping Adapter
+                                        </label>
+                                        <select class="form-select" id="adapter" name="adapter">
+                                            {% for adapter in adapters %}
+                                            <option value="{{ adapter.name }}" 
+                                                    title="{{ adapter.description }}">
+                                                {{ adapter.display_name }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="task_type" class="form-label">
+                                            <i data-feather="target" class="me-1"></i>
+                                            Task Type
+                                        </label>
+                                        <select class="form-select" id="task_type" name="task_type">
+                                            <option value="general">General Scraping</option>
+                                            <option value="job">Job Listings</option>
+                                            <option value="lead">Lead Generation</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-success">
+                                        <i data-feather="download" class="me-2"></i>
+                                        Start Scraping
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <h3 class="text-center mb-4">Features</h3>
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <i data-feather="search" class="text-primary mb-3" style="width: 48px; height: 48px;"></i>
+                            <h5 class="card-title">Smart URL Discovery</h5>
+                            <p class="card-text">Use DuckDuckGo search to automatically find relevant URLs for your scraping tasks</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <i data-feather="users" class="text-success mb-3" style="width: 48px; height: 48px;"></i>
+                            <h5 class="card-title">Contact Extraction</h5>
+                            <p class="card-text">Automatically extract emails, phone numbers, and social profiles for lead generation</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <i data-feather="briefcase" class="text-info mb-3" style="width: 48px; height: 48px;"></i>
+                            <h5 class="card-title">Job Board Support</h5>
+                            <p class="card-text">Built-in adapters for popular job boards like Indeed and LinkedIn</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize tabs
+    const triggerTabList = document.querySelectorAll('#jobTabs button')
+    triggerTabList.forEach(triggerEl => {
+        const tabTrigger = new bootstrap.Tab(triggerEl)
+        
+        triggerEl.addEventListener('click', event => {
+            event.preventDefault()
+            tabTrigger.show()
+        })
+    })
+    
+    // Update feather icons when tabs change
+    document.querySelector('#jobTabs').addEventListener('shown.bs.tab', function() {
+        feather.replace()
+    })
+});
+</script>
+{% endblock %}

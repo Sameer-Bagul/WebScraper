@@ -1,0 +1,77 @@
+{
+  "name": "Indeed Job Board",
+  "description": "Specialized scraper for Indeed job listings with comprehensive job data extraction",
+  "selectors": {
+    "job_title": {
+      "selector": "[data-jk] h2 a span, .jobTitle a span, .jobTitle-color-purple",
+      "attribute": "text"
+    },
+    "company": {
+      "selector": "[data-jk] .companyName, .companyName a, .companyName span",
+      "attribute": "text"
+    },
+    "location": {
+      "selector": "[data-jk] .companyLocation, .locationsContainer div",
+      "attribute": "text"
+    },
+    "salary": {
+      "selector": "[data-jk] .salary-snippet, .metadata.salary-snippet-container .attribute_snippet",
+      "attribute": "text"
+    },
+    "job_summary": {
+      "selector": "[data-jk] .job-snippet, .summary",
+      "attribute": "text"
+    },
+    "job_url": {
+      "selector": "[data-jk] h2 a, .jobTitle a",
+      "attribute": "href"
+    },
+    "posted_date": {
+      "selector": "[data-jk] .date, .metadata .visually-hidden:contains('Posted')",
+      "attribute": "text"
+    },
+    "job_type": {
+      "selector": "[data-jk] .jobTypeLabel, .metadata .attribute_snippet",
+      "attribute": "text"
+    },
+    "rating": {
+      "selector": "[data-jk] .ratingsContent span, .companyRating",
+      "attribute": "text"
+    },
+    "requirements": {
+      "selector": ".jobDescriptionText .icl-u-lg-mr--sm li, .jobDescriptionText ul li",
+      "attribute": "text",
+      "multiple": true
+    }
+  },
+  "detail_page_selectors": {
+    "full_description": {
+      "selector": ".jobDescriptionText, #jobDescriptionText",
+      "attribute": "text"
+    },
+    "benefits": {
+      "selector": ".jobDescriptionText .benefit, .jobBenefits li",
+      "attribute": "text",
+      "multiple": true
+    },
+    "qualifications": {
+      "selector": ".jobDescriptionText .qualification",
+      "attribute": "text",
+      "multiple": true
+    },
+    "company_info": {
+      "selector": ".jobDescriptionText .companyInfo",
+      "attribute": "text"
+    }
+  },
+  "extract_links": false,
+  "extract_text": false,
+  "fallback_to_dynamic": true,
+  "wait_time": 3,
+  "rate_limit": 2,
+  "follow_detail_links": true,
+  "pagination": {
+    "next_page_selector": ".pn",
+    "max_pages": 5
+  }
+}

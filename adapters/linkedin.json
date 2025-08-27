@@ -1,0 +1,82 @@
+{
+  "name": "LinkedIn Jobs",
+  "description": "Specialized scraper for LinkedIn job listings with professional network data",
+  "selectors": {
+    "job_title": {
+      "selector": ".job-search-card__title, .jobs-search__job-title, .job-card-container__link",
+      "attribute": "text"
+    },
+    "company": {
+      "selector": ".job-search-card__subtitle-link, .jobs-search__job-company, .job-card-container__company-name",
+      "attribute": "text"
+    },
+    "location": {
+      "selector": ".job-search-card__location, .jobs-search__job-location, .job-card-container__metadata-item",
+      "attribute": "text"
+    },
+    "job_url": {
+      "selector": ".job-search-card__title-link, .jobs-search__job-title-link",
+      "attribute": "href"
+    },
+    "posted_time": {
+      "selector": ".job-search-card__listdate, .jobs-search__job-posted-date",
+      "attribute": "text"
+    },
+    "job_level": {
+      "selector": ".job-search-card__seniority-level, .job-details-jobs-unified-top-card__job-insight",
+      "attribute": "text"
+    },
+    "employment_type": {
+      "selector": ".job-search-card__employment-status",
+      "attribute": "text"
+    },
+    "applicants": {
+      "selector": ".job-search-card__applicant-count",
+      "attribute": "text"
+    },
+    "skills_required": {
+      "selector": ".job-details-jobs-unified-top-card__job-skill",
+      "attribute": "text",
+      "multiple": true
+    }
+  },
+  "detail_page_selectors": {
+    "job_description": {
+      "selector": ".jobs-description__content, .jobs-box__html-content",
+      "attribute": "text"
+    },
+    "company_size": {
+      "selector": ".jobs-company__box .org-top-card-summary-info-list__info-item",
+      "attribute": "text"
+    },
+    "industry": {
+      "selector": ".jobs-company__box .org-top-card-summary-info-list__info-item",
+      "attribute": "text"
+    },
+    "company_employees": {
+      "selector": ".org-top-card-summary-info-list__info-item",
+      "attribute": "text"
+    },
+    "hiring_manager": {
+      "selector": ".jobs-poster__name",
+      "attribute": "text"
+    },
+    "similar_jobs": {
+      "selector": ".jobs-similar-jobs__job-card .job-card-container__link",
+      "attribute": "href",
+      "multiple": true
+    }
+  },
+  "extract_links": false,
+  "extract_text": false,
+  "fallback_to_dynamic": true,
+  "wait_time": 4,
+  "rate_limit": 3,
+  "follow_detail_links": true,
+  "requires_login": true,
+  "anti_bot_measures": {
+    "random_delays": true,
+    "scroll_behavior": true,
+    "mouse_movements": true
+  }
+}
