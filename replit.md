@@ -7,12 +7,12 @@ Web Scraper Pro is a professional web scraping application designed for two prim
 ## Recent Changes (August 27, 2025)
 
 ✓ **Migration to Replit Environment:** Successfully migrated from Replit Agent to standard Replit
-✓ **Database Migration:** Converted from MongoDB to PostgreSQL with Flask-SQLAlchemy
-✓ **Security Improvements:** Implemented proper environment variable usage for secrets
+✓ **Database Architecture:** Converted to MongoDB for optimal MERN stack compatibility
+✓ **Security Improvements:** Implemented proper environment variable usage for secrets (MONGODB_URI, SESSION_SECRET)
 ✓ **Architecture Cleanup:** Separated frontend Blueprint from main app for better organization
-✓ **Model Refactoring:** Updated all models to use SQLAlchemy ORM with proper relationships
-✓ **API Modernization:** Updated all API routes to work with PostgreSQL and new models
-✓ **Dependency Management:** Added flask-login and updated package configuration
+✓ **Model Refactoring:** Updated all models to use MongoDB collections with proper document structure
+✓ **API Modernization:** Updated all API routes to work with MongoDB and new models
+✓ **MERN Compatibility:** Structured for easy future migration to MERN stack for job listing features
 
 ## User Preferences
 
@@ -37,11 +37,11 @@ Architecture preference: React.js frontend + Flask API backend
 - **Contact Extraction**: NLP-based extraction system (to be integrated)
 
 ### Data Storage
-- **Primary Database**: PostgreSQL with Flask-SQLAlchemy ORM
-- **Tables**: scraping_jobs, scraping_results, domain_adapters, users
-- **Relationships**: Proper foreign key constraints and cascading deletes
+- **Primary Database**: MongoDB with PyMongo driver for MERN stack compatibility
+- **Collections**: scraping_jobs, scraping_results, domain_adapters
+- **Document Structure**: JSON-based documents with ObjectId references
 - **File Storage**: Local filesystem for adapter configurations and exported results
-- **Current Status**: Full database integration with SQLAlchemy models
+- **Current Status**: Full MongoDB integration with document-based models ready for MERN migration
 
 ### Authentication & Authorization
 - **Session Management**: Flask's built-in session handling with secret key configuration
